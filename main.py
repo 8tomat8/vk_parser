@@ -1,6 +1,6 @@
 import vk
 import resources
-from models import Wall
+from models import Post
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base
@@ -19,21 +19,20 @@ def main():
     # wall_owner_id = -77868632  # Force
     # wall_owner_id = -101555444  # CopyPaste
     wall_owner_id = -58010960  # target
-    wall_columns = ['id', 'from_id', 'date', 'likes', 'reposts', 'text']
+    post_columns = ['id', 'from_id', 'date', 'likes', 'reposts', 'text']
 
     api = vk.API(vk.Session())
 
-    wall = resources.Wall(wall_owner_id, api)
+    posts = resources.Posts(wall_owner_id, api)
 
     counter = 0
 
-    for posts in wall:
-        for post in posts[1:]:
-            data = {'owner_id': wall_owner_id}
-            data.update({key: post[key] for key in wall_columns})
-            session.add(Wall(**data))
-            counter += 1
-        print(counter)
+    for post in posts:
+        data = {'owner_id': wall_owner_id}
+        data.update({key: post[key] for key in post_columns})
+        session.add(Post(**data))
+        counter += 1
+    print(counter)
 
     session.commit()
 

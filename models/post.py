@@ -4,8 +4,8 @@ from sqlalchemy import String
 from . import Base
 
 
-class Wall(Base):
-    __tablename__ = 'wall'
+class Post(Base):
+    __tablename__ = 'posts'
     id = Column(Integer, primary_key=True)
     owner_id = Column(Integer, primary_key=True)
     from_id = Column(Integer, nullable=False)

@@ -1,3 +1,3 @@
-from .wall import Wall
+from .posts import Posts
 
-__all__ = ['Wall']
+__all__ = ['Posts']

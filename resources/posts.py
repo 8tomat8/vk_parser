@@ -1,4 +1,4 @@
-class Wall:
+class Posts:
 
     COUNT = 100
     fields_list = ['post_type', 'date', 'domain', 'id', 'from_id', 'text',
@@ -30,7 +30,8 @@ class Wall:
             self.total_count -= len(posts) - 1
             self.iteration += 1
 
-            yield posts
+            for post in posts[1:]:
+                yield post
 
             if self.total_count == 0:
                 assert StopIteration
