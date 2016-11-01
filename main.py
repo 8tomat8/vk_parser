@@ -24,7 +24,7 @@ def main():
     mask = t.Dict({
         'from_id': t.Int,
         'date': lambda v: datetime.fromtimestamp(v),
-        'text': t.String,
+        'text': t.String(allow_blank=True),
         t.Key('id') >> 'post_id': t.Int,
         t.Key('likes') >> 'likes_count': lambda v: int(v['count']),
         t.Key('reposts') >> 'reposts_count': lambda v: int(v['count']),
@@ -44,7 +44,7 @@ def main():
             del data['attachments']
         session.add(Post(**data))
         counter += 1
-        if not counter % 10:
+        if not counter % 100:
             print(counter)
 
     session.commit()
