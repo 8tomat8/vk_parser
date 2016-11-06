@@ -1,14 +1,20 @@
 import vk
+import pickle as p
 import trafaret as t
+from tqdm import tqdm
 from datetime import datetime
+
 import resources
+from helpers.attachments import Attachments
 from models import Post
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base
 
 
-engine = create_engine('sqlite:///vk.db')
+# engine = create_engine('sqlite:///vk.db')
+DEBUG = False
+engine = create_engine('mysql://root:@127.0.0.1/vk?charset=utf8', echo=DEBUG)
 session = sessionmaker(bind=engine)()
 
 
@@ -18,14 +24,15 @@ def init_db():
 
 
 def main():
-    # wall_owner_id = -77868632  # Force
+    wall_owner_id = -77868632  # Force
     # wall_owner_id = -101555444  # CopyPaste
-    wall_owner_id = -58010960  # target
+    # wall_owner_id = -58010960  # target
     mask = t.Dict({
         'from_id': t.Int,
         'date': lambda v: datetime.fromtimestamp(v),
         'text': t.String(allow_blank=True),
         t.Key('id') >> 'post_id': t.Int,
+        t.Key('owner_id', default=wall_owner_id): t.Int(),
         t.Key('likes') >> 'likes_count': lambda v: int(v['count']),
         t.Key('reposts') >> 'reposts_count': lambda v: int(v['count']),
         t.Key('attachments', optional=True) >>
@@ -35,18 +42,26 @@ def main():
 
     posts = resources.Posts(wall_owner_id, api)
 
-    counter = 0
+    posts_list = []
+    try:
+        raise Exception
+        posts_list = p.load(open("posts%s.pikle".format(wall_owner_id), "rb"))
 
-    for post in posts:
-        data = mask.check(post)
-        data['owner_id'] = wall_owner_id
-        if data.get('attachments'):
-            del data['attachments']
-        session.add(Post(**data))
-        counter += 1
-        if not counter % 100:
-            print(counter)
+        if len(posts_list) is 0:
+            raise Exception
+        print('~~~***!!!Data taken from pickle!!!***~~~')
+    except:
+        for post in tqdm(posts):
+            data = mask.check(post)
+            if data.get('attachments'):
+                attachments = Attachments(data['post_id'], data['owner_id'])
+                data['attachments'] = attachments.download(data['attachments'])
+            post = Post(**data)
+            posts_list.append(post)
 
+        p.dump(posts_list, open("posts%s.pikle".format(wall_owner_id), "wb"))
+
+    session.add_all(posts_list)
     session.commit()
 
 
