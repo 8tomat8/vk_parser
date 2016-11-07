@@ -12,9 +12,12 @@ from models import Base
 from models import Post
 
 
-# engine = create_engine('sqlite:///vk.db')
 DEBUG = False
-engine = create_engine('mysql://root:@127.0.0.1/vk?charset=utf8', echo=DEBUG)
+try:
+    engine = create_engine('mysql://root:@127.0.0.1/vk?charset=utf8', echo=DEBUG)
+except:
+    engine = create_engine('sqlite:///vk.db')
+
 session = sessionmaker(bind=engine)()
 
 
@@ -24,9 +27,9 @@ def init_db():
 
 
 def main():
-    wall_owner_id = -77868632  # Force
+    # wall_owner_id = -77868632  # Force
     # wall_owner_id = -101555444  # CopyPaste
-    # wall_owner_id = -58010960  # target
+    wall_owner_id = -58010960  # target
     mask = t.Dict({
         'from_id': t.Int,
         'date': lambda v: datetime.fromtimestamp(v),
