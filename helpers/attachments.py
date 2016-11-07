@@ -35,7 +35,7 @@ class Attachments:
         with closing(ClientSession()) as s:
             download_tasks = (types[e['type']](e, s) for e in data)
             rv = dumps(loop.run_until_complete(gather(*download_tasks)))
-            self.result = rv
+            self.result = [r for r in rv if r]
 
         return self.result, self.objects_to_save
 
