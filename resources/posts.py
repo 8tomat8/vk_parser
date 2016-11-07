@@ -1,3 +1,6 @@
+from requests.exceptions import ReadTimeout
+
+
 class Posts:
 
     COUNT = 100
@@ -38,12 +41,20 @@ class Posts:
                 break
 
     def __get_posts(self, iteration, count=COUNT):
-        rv = self.api.wall.get(
-            owner_id=self.owner_id,
-            offset=self._current_offset,
-            count=count,
-            fields=','.join(self.fields_list)
-        )
+        for _ in range(3):
+            try:
+                rv = self.api.wall.get(
+                    owner_id=self.owner_id,
+                    offset=self._current_offset,
+                    count=count,
+                    fields=','.join(self.fields_list)
+                )
+            except ReadTimeout:
+                print('******************Timeout! Retying!******************')
+            else:
+                break
+        else:
+            raise ReadTimeout
         self._current_offset += self.COUNT
 
         return rv

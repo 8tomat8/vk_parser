@@ -3,13 +3,15 @@ from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import relationship
+from sqlalchemy.types import Text
 from . import Base
 
 
 class Photo(Base):
     __tablename__ = 'photos'
     id = Column(Integer, primary_key=True)
-    post_id = Column(Integer, ForeignKey('post.id'))
-    # post = relationship('Post', back_populates='photos')
-    link = Column(String, nullable=False)
-    text = Column(String, nullable=False)
+    post_id = Column(Integer, ForeignKey('posts.id'))
+    post = relationship('Post', back_populates='photos')
+    filename = Column(String(255), nullable=False)
+    link = Column(String(255), nullable=False)
+    text = Column(Text, nullable=True)
