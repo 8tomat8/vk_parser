@@ -12,5 +12,6 @@ class Photo(Base):
     id = Column(Integer, primary_key=True)
     post_id = Column(Integer, ForeignKey('posts.id'))
     post = relationship('Post', back_populates='photos')
+    filename = Column(String(255), nullable=False)
     link = Column(String(255), nullable=False)
-    text = Column(Text, nullable=False)
+    text = Column(Text, nullable=True)

@@ -6,10 +6,10 @@ from datetime import datetime
 
 import resources
 from helpers.attachments import Attachments
-from models import Post
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base
+from models import Post
 
 
 # engine = create_engine('sqlite:///vk.db')
@@ -55,7 +55,8 @@ def main():
             data = mask.check(post)
             if data.get('attachments'):
                 attachments = Attachments(data['post_id'], data['owner_id'])
-                data['attachments'] = attachments.download(data['attachments'])
+                data['attachments'], data['photos'] = \
+                    attachments.download(data['attachments'])
             post = Post(**data)
             posts_list.append(post)
 
