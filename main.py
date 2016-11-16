@@ -1,10 +1,13 @@
 import vk
+import uvloop
 import pickle as p
 import trafaret as t
 from tqdm import tqdm
 from datetime import datetime
+from asyncio import set_event_loop_policy
 
 import resources
+from helpers.dowloader import Downloader
 from helpers.attachments import Attachments
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -12,11 +15,9 @@ from models import Base
 from models import Post
 
 
+set_event_loop_policy(uvloop.EventLoopPolicy())
 DEBUG = False
-try:
-    engine = create_engine('mysql://root:@127.0.0.1/vk?charset=utf8', echo=DEBUG)
-except:
-    engine = create_engine('sqlite:///vk.db')
+engine = create_engine('mysql://root:@127.0.0.1/vk?charset=utf8', echo=DEBUG)
 
 session = sessionmaker(bind=engine)()
 
@@ -46,11 +47,13 @@ def main():
     posts = resources.Posts(wall_owner_id, api)
 
     posts_list = []
+    to_download = []
     try:
-        raise Exception
-        posts_list = p.load(open("posts%s.pikle".format(wall_owner_id), "rb"))
+        # raise Exception
+        posts_list = p.load(open("posts{}.pikle".format(wall_owner_id), "rb"))
+        to_download = p.load(open("toDownload{}.pikle".format(wall_owner_id), "rb"))
 
-        if len(posts_list) is 0:
+        if len(posts_list) is 0 or len(to_download) is 0:
             raise Exception
         print('~~~***!!!Data taken from pickle!!!***~~~')
     except:
@@ -58,13 +61,19 @@ def main():
             data = mask.check(post)
             if data.get('attachments'):
                 attachments = Attachments(data['post_id'], data['owner_id'])
-                data['attachments'], data['photos'] = \
-                    attachments.download(data['attachments'])
+                data['attachments'], objects, links = \
+                    attachments.prepare(data['attachments'])
+
+                data.update(**objects)
+                to_download.extend(links)
+
             post = Post(**data)
             posts_list.append(post)
 
-        p.dump(posts_list, open("posts%s.pikle".format(wall_owner_id), "wb"))
+        p.dump(posts_list, open("posts{}.pikle".format(wall_owner_id), "wb"))
+        p.dump(to_download, open("toDownload{}.pikle".format(wall_owner_id), "wb"))
 
+    Downloader(to_download).download()
     session.add_all(posts_list)
     session.commit()
 

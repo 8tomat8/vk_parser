@@ -1,5 +1,6 @@
 from json import dumps
 from collections import defaultdict
+from collections import namedtuple
 from asyncio import get_event_loop
 from asyncio import gather
 from aiohttp import ClientSession
@@ -16,9 +17,10 @@ class Attachments:
     def __init__(self, post_id: int, owner_id: int):
         self.post_id = post_id
         self.owner_id = owner_id
-        self.objects_to_save = []
+        __objects = namedtuple('objects', ['objects', 'links'])
+        self.objects_to_save = __objects({}, [])
 
-    def download(self, data):
+    def prepare(self, data):
         types = defaultdict(lambda: self.default)
         types.update({
             # Commented types will be added of necessity
@@ -33,29 +35,16 @@ class Attachments:
         })
         loop = get_event_loop()
         with closing(ClientSession()) as s:
-            download_tasks = (types[e['type']](e, s) for e in data)
-            rv = dumps(loop.run_until_complete(gather(*download_tasks)))
-            self.result = [r for r in rv if r]
+            tasks = (types[e['type']](e, s) for e in data)
+            rv = loop.run_until_complete(gather(*tasks))
+            self.result = dumps([r for r in rv if r])
 
-        return self.result, self.objects_to_save
+        return self.result,\
+            self.objects_to_save.objects,\
+            self.objects_to_save.links
 
     async def photo(self, data: dict, session):
-        path = 'cache/photos/'
-        {'access_key': 'd56cf68d40a5f4ba7b',
-         'aid': -7,
-         'created': 1477433642,
-         'height': 549,
-         'owner_id': -101271420,
-         'pid': 436935371,
-         'post_id': 31289,
-         'src': 'https://pp.vk.me/c836338/v836338795/802a/J4uaRcNHVjU.jpg',
-         'src_big': 'https://pp.vk.me/c836338/v836338795/802b/624tc0jELKU.jpg',
-         'src_small': 'https://pp.vk.me/c836338/v836338795/8029/L0ghgGdL7dY.jpg',
-         'src_xbig': 'https://pp.vk.me/c836338/v836338795/802c/rKOqgxVH3uQ.jpg',
-         'text': '',
-         'user_id': 100,
-         'width': 807,
-         }
+        __type = 'photos'
         fields = ('src_xxxbig', 'src_xxbig', 'src_xbig', 'src_big',
                   'src', 'src_small',
                   )
@@ -68,17 +57,21 @@ class Attachments:
             except KeyError:
                 pass
 
-        async with session.get(link) as response:
-            with closing(response), open(path + filename, 'wb') as file:
-                while True:  # save file
-                    chunk = await response.content.read(1 << 15)
-                    if not chunk:
-                        break
-                    file.write(chunk)
-        self.objects_to_save.append(Photo(post_id=self.post_id,
-                                          link=link,
-                                          text=data['photo']['text'],
-                                          filename=filename))
+        # path = 'cache/photos/'
+        # async with session.get(link) as response:
+        #     with closing(response), open(path + filename, 'wb') as file:
+        #         while True:  # save file
+        #             chunk = await response.content.read(1 << 15)
+        #             if not chunk:
+        #                 break
+        #             file.write(chunk)
+        self.objects_to_save.objects.setdefault(__type, []).append(
+            Photo(post_id=self.post_id,
+                  link=link,
+                  text=data['photo']['text'],
+                  filename=filename),
+        )
+        self.objects_to_save.links.append({'link': link, 'type': __type})
 
     async def default(self, data, *_):
         return data
